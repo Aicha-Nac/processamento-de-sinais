@@ -1,1 +1,0 @@
-# convolu-ao-discreta-python
