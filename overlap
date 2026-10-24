@@ -1,0 +1,328 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMwdbgcmCaJOqSeS2STs+q7",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Aicha-Nac/processamento-de-sinais/blob/main/overlap\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "def dft(x):\n",
+        "    x = np.asarray(x, dtype=complex)\n",
+        "    N = len(x)\n",
+        "    X = np.zeros(N, dtype=complex)\n",
+        "\n",
+        "    for k in range(N):\n",
+        "        soma = 0\n",
+        "        for n in range(N):\n",
+        "            soma += x[n] * np.exp(-1j * 2 * np.pi * k * n / N)\n",
+        "        X[k] = soma\n",
+        "\n",
+        "    return X\n",
+        "\n",
+        "\n",
+        "# teste\n",
+        "x = [1, 1, 1, 1]\n",
+        "print(dft(x))\n",
+        "print(np.fft.fft(x))  # resultado de referência do numpy\n",
+        "\n",
+        "print(np.allclose(dft(x), np.fft.fft(x)))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "v5bKJbX8eLr1",
+        "outputId": "994e2ff6-de2e-4aa9-bf77-cd4957c93c52"
+      },
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[ 4.00000000e+00+0.00000000e+00j -1.83697020e-16-2.22044605e-16j\n",
+            "  0.00000000e+00-2.44929360e-16j  3.29046455e-16-3.33066907e-16j]\n",
+            "[4.+0.j 0.+0.j 0.+0.j 0.+0.j]\n",
+            "True\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def idft(X):\n",
+        "    X = np.asarray(X, dtype=complex)\n",
+        "    N = len(X)\n",
+        "    x = np.zeros(N, dtype=complex)\n",
+        "\n",
+        "    for n in range(N):\n",
+        "        soma = 0\n",
+        "        for k in range(N):\n",
+        "            soma += X[k] * np.exp(1j * 2 * np.pi * k * n / N)\n",
+        "        x[n] = soma / N\n",
+        "\n",
+        "    return x\n",
+        "\n",
+        "\n",
+        "# teste de ida e volta\n",
+        "x = [3, 5, 6, 7]\n",
+        "X = dft(x)\n",
+        "x_rec = idft(X)\n",
+        "\n",
+        "print(np.round(x_rec, 4))\n",
+        "print(np.allclose(x_rec, x))\n",
+        "print(np.allclose(idft(X), np.fft.ifft(X)))  # compara com o numpy"
+      ],
+      "metadata": {
+        "id": "7z_ADmSUlSgd",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "bc2f6dbd-76b1-47cb-9c79-6df9bce20d53"
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[3.-0.j 5.-0.j 6.+0.j 7.+0.j]\n",
+            "True\n",
+            "True\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "rng = np.random.default_rng(0)\n",
+        "N = 8\n",
+        "x = rng.standard_normal(N)\n",
+        "y = rng.standard_normal(N)\n",
+        "X = dft(x)\n",
+        "Y = dft(y)\n",
+        "n = np.arange(N)\n",
+        "k = np.arange(N)\n",
+        "\n",
+        "# 1. linearidade: DFT(a*x + b*y) = a*X + b*Y\n",
+        "a, b = 2, -3\n",
+        "print(\"Linearidade:\", np.allclose(dft(a*x + b*y), a*X + b*Y))\n",
+        "\n",
+        "# 2. deslocamento circular no tempo: x[(n-m) mod N] -> X[k] * e^(-j2πkm/N)\n",
+        "m = 3\n",
+        "print(\"Deslocamento no tempo:\", np.allclose(dft(np.roll(x, m)), X * np.exp(-1j*2*np.pi*k*m/N)))\n",
+        "\n",
+        "# 3. deslocamento em frequência: x[n] * e^(j2πln/N) -> X[(k-l) mod N]\n",
+        "l = 2\n",
+        "print(\"Deslocamento em frequência:\", np.allclose(dft(x * np.exp(1j*2*np.pi*l*n/N)), np.roll(X, l)))\n",
+        "\n",
+        "# 4. reversão circular no tempo: x[(-n) mod N] -> X[(-k) mod N]\n",
+        "print(\"Reversão no tempo:\", np.allclose(dft(x[(-n) % N]), X[(-k) % N]))\n",
+        "\n",
+        "# 5. simetria conjugada (x real): X[(-k) mod N] = conj(X[k])\n",
+        "print(\"Simetria conjugada:\", np.allclose(X[(-k) % N], np.conj(X)))\n",
+        "\n",
+        "# 6. convolução circular: DFT(x ⊛ y) = X * Y\n",
+        "def conv_circular(x, y):\n",
+        "    N = len(x)\n",
+        "    z = np.zeros(N)\n",
+        "    for n in range(N):\n",
+        "        for m in range(N):\n",
+        "            z[n] += x[m] * y[(n - m) % N]\n",
+        "    return z\n",
+        "\n",
+        "print(\"Convolução circular:\", np.allclose(dft(conv_circular(x, y)), X * Y))\n",
+        "\n",
+        "# 7. Parseval: energia no tempo = energia na frequência / N\n",
+        "print(\"Parseval:\", np.allclose(np.sum(np.abs(x)**2), np.sum(np.abs(X)**2) / N))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "tl66UXqbqwIE",
+        "outputId": "8dfecf44-6570-4efa-f4ba-6b38365914e9"
+      },
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Linearidade: True\n",
+            "Deslocamento no tempo: True\n",
+            "Deslocamento em frequência: True\n",
+            "Reversão no tempo: True\n",
+            "Simetria conjugada: True\n",
+            "Convolução circular: True\n",
+            "Parseval: True\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "mVQ1L2qi0pX3"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def conv_linear_dft(x, h):\n",
+        "    x = np.asarray(x, dtype=float)\n",
+        "    h = np.asarray(h, dtype=float)\n",
+        "    L = len(x) + len(h) - 1\n",
+        "\n",
+        "    # zero-padding até o tamanho L\n",
+        "    xp = np.concatenate([x, np.zeros(L - len(x))])\n",
+        "    hp = np.concatenate([h, np.zeros(L - len(h))])\n",
+        "\n",
+        "    # convolução = multiplicação na frequência\n",
+        "    y = idft(dft(xp) * dft(hp))\n",
+        "\n",
+        "    # o resultado deve ser real; a parte imaginária é só erro de arredondamento\n",
+        "    return np.real(y)\n",
+        "\n",
+        "\n",
+        "x = [1, 2, 3, 4]\n",
+        "h = [1, 1, 1]\n",
+        "\n",
+        "print(\"Com zero-padding:\", np.round(conv_linear_dft(x, h), 4))\n",
+        "print(\"np.convolve:     \", np.convolve(x, h))\n",
+        "print(np.allclose(conv_linear_dft(x, h), np.convolve(x, h)))\n",
+        "\n",
+        "# sem zero-padding: convolução circular, resultado errado (aliasing)\n",
+        "h_mesmo_tamanho = np.concatenate([h, np.zeros(len(x) - len(h))])\n",
+        "sem_padding = np.real(idft(dft(x) * dft(h_mesmo_tamanho)))\n",
+        "print(\"Sem zero-padding:\", np.round(sem_padding, 4))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "XO--RgQErNSN",
+        "outputId": "0865869a-90c6-4b06-c8b5-59dbbdb717f4"
+      },
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Com zero-padding: [1. 3. 6. 9. 7. 4.]\n",
+            "np.convolve:      [1 3 6 9 7 4]\n",
+            "True\n",
+            "Sem zero-padding: [8. 7. 6. 9.]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def overlap_add(x, h, B):\n",
+        "    x = np.asarray(x, dtype=float)\n",
+        "    h = np.asarray(h, dtype=float)\n",
+        "    M = len(h)\n",
+        "    L = B + M - 1  # tamanho da DFT de cada bloco\n",
+        "\n",
+        "    H = dft(np.concatenate([h, np.zeros(L - M)]))\n",
+        "    y = np.zeros(len(x) + M - 1)\n",
+        "\n",
+        "    for inicio in range(0, len(x), B):\n",
+        "        bloco = x[inicio:inicio + B]\n",
+        "        bloco_p = np.concatenate([bloco, np.zeros(L - len(bloco))])\n",
+        "        y_bloco = np.real(idft(dft(bloco_p) * H))\n",
+        "\n",
+        "        # soma o resultado do bloco na posição certa (as caudas se sobrepõem)\n",
+        "        fim = min(inicio + L, len(y))\n",
+        "        y[inicio:fim] += y_bloco[:fim - inicio]\n",
+        "\n",
+        "    return y\n",
+        "\n",
+        "\n",
+        "def overlap_save(x, h, L):\n",
+        "    x = np.asarray(x, dtype=float)\n",
+        "    h = np.asarray(h, dtype=float)\n",
+        "    M = len(h)\n",
+        "    passo = L - (M - 1)  # amostras válidas por bloco\n",
+        "\n",
+        "    H = dft(np.concatenate([h, np.zeros(L - M)]))\n",
+        "    tamanho_saida = len(x) + M - 1\n",
+        "\n",
+        "    # M-1 zeros no início (primeiro bloco) e zeros no fim para completar o último bloco\n",
+        "    xp = np.concatenate([np.zeros(M - 1), x, np.zeros(L)])\n",
+        "    y = []\n",
+        "\n",
+        "    for inicio in range(0, tamanho_saida, passo):\n",
+        "        bloco = xp[inicio:inicio + L]\n",
+        "        y_bloco = np.real(idft(dft(bloco) * H))  # convolução circular\n",
+        "\n",
+        "        # descarta as M-1 primeiras amostras (contaminadas pelo aliasing)\n",
+        "        y.extend(y_bloco[M - 1:])\n",
+        "\n",
+        "    return np.array(y[:tamanho_saida])\n",
+        "\n",
+        "\n",
+        "# teste com um sinal mais longo\n",
+        "rng = np.random.default_rng(1)\n",
+        "x = rng.integers(0, 10, 20)\n",
+        "h = [1, 2, 1]\n",
+        "\n",
+        "print(\"Overlap-add: \", np.allclose(overlap_add(x, h, B=5), np.convolve(x, h)))\n",
+        "print(\"Overlap-save:\", np.allclose(overlap_save(x, h, L=8), np.convolve(x, h)))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yLCKxoXr0rP0",
+        "outputId": "fd51eb4d-aafa-4922-8249-a729f9458e1d"
+      },
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Overlap-add:  True\n",
+            "Overlap-save: True\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
